@@ -7,7 +7,7 @@ class Live2dAudioPlayer extends PIXI.utils.EventEmitter {
 
         this._lastrms = 0
         this._audio = new Audio()
-        this._audio.muted = true
+        // this._audio.muted = true
         this._audioMap = new Map()
         this._index = 0;
     }

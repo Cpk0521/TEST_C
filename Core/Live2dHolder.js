@@ -35,7 +35,7 @@ class Live2dHolder extends PIXI.utils.EventEmitter {
 
         this._Model.autoInteract = false; //pixi v7 need to set false
         this._Model.buttonMode = false;
-        this._Model.interactive = true;
+        this._Model.interactive = false;
 
         this.getMotionManager().on('motionLoaded', function (group, index, motion) {
             const curves = [];

@@ -17,6 +17,7 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
         this._MessageManager = new MessageManager()
         this._StillManager = new StillManager()
         this._SoundManager = new SoundManager()
+        this._L2dAudioPlayer = new Live2dAudioPlayer()
         this._TranslateReader = new TranslateReader()
 
         //add to main Container 
@@ -74,7 +75,7 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
         // console.log(this._checkHeroSort())
 
         return Promise.all([
-            this._L2dManager.initialize(Assets.heroines, this._checkHeroSort()),
+            this._L2dManager.initialize(Assets.heroines, this._L2dAudioPlayer, this._checkHeroSort()),
             this._BGManager.initialize(Assets.backgrounds),
             this._MessageManager.initialize(Assets.heroines),
             new Promise((res)=>{

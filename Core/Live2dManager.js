@@ -7,7 +7,7 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         super()
 
         this._container = new PIXI.Container();
-        this._L2dAudioPlayer = SoundManager.L2dAudioPlayer
+        // this._L2dAudioPlayer = SoundManager.L2dAudioPlayer
         this._holderMap = new Map()
 
         //
@@ -17,10 +17,12 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         this._builtModelCount = 0
     }
 
-    async initialize(Assets, sortedlist) {
+    async initialize(Assets, L2dAudio, sortedlist) {
         if(!Assets) {
             return new Promise(()=>{})
         }
+
+        this._L2dAudioPlayer = L2dAudio
 
         for (let index = 0; index < Assets.length; index++) {
             await this._createHolder(Assets[index])

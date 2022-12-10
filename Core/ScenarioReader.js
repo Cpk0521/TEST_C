@@ -83,9 +83,35 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             })
         ]).then(()=>{
             this.emit('AssestsOnSetUp')
-            this.start()
+            this.waitingTouch()
         })
     }
+
+    async waitingTouch(){
+
+        let touchscreen = new PIXI.Container()
+        touchscreen.width = GameApp.appSize.width
+        touchscreen.height = GameApp.appSize.height
+        this._gameapp.mainContainer.addChild(touchscreen)
+        let touchToStartimg = await this._loader.load('./Images/ui/Common_TouchScreenText.png')
+        let touchToStart = new PIXI.Sprite(touchToStartimg);
+        touchscreen.addChild(touchToStart);
+
+        touchToStart.anchor.set(0.5);
+        touchToStart.position.set(GameApp.appSize.width / 2  , GameApp.appSize.height / 2);
+
+        touchscreen.interactive = true;
+        
+        const callback = ()=>{
+            this._gameapp.mainContainer.removeChild(touchscreen)
+            GameApp.App.view.removeEventListener('click', callback)
+            GameApp.App.view.removeEventListener('touchstart', callback)
+            this.start()
+        }
+
+        GameApp.App.view.addEventListener('click', callback);
+        GameApp.App.view.addEventListener('touchstart', callback);
+    }   
 
     async start(){
         this._isLoading = false

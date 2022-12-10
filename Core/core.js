@@ -6,6 +6,7 @@ var phase = params.get('phase')
 
 window.onload = () => {
 
+    const vConsole = new window.VConsole();
     const element = document.getElementById('app')
 
     const app = GameApp.create(element, {

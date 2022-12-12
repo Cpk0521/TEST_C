@@ -73,7 +73,7 @@ class MessageManager extends PIXI.utils.EventEmitter {
         // this._messgaePanel.position.set(190 , 560)
         this._container.addChild(this._messgaePanel)
 
-        this._messageText = new PIXI.Text('', this._messageTextStyle['normal'])
+        this._messageText = new PIXI.Text('', this._messageTextStyle['zh'])
         this._messageText.position.set(40, 35)
         this._messgaePanel.addChild(this._messageText)
 
@@ -87,7 +87,7 @@ class MessageManager extends PIXI.utils.EventEmitter {
             nameTag.tint = 0x7d7d7d
             this._container.addChild(nameTag)
 
-            let messageNameText = new PIXI.Text('名前', this._NameTextStyle['normal']);
+            let messageNameText = new PIXI.Text('名前', this._NameTextStyle['zh']);
             messageNameText.anchor.set(0.5)
             messageNameText.position.set(nameTag.width/2, nameTag.height/2 - 1.5)
             nameTag.addChild(messageNameText)

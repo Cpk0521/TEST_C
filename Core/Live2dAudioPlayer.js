@@ -7,7 +7,8 @@ class Live2dAudioPlayer extends PIXI.utils.EventEmitter {
 
         this._lastrms = 0
         this._audio = new Audio()
-        // this._audio.muted = true
+        this._audio.muted = true
+        this._audio.crossOrigin = "anonymous";
         this._audioMap = new Map()
         this._index = 0;
     }
@@ -16,7 +17,7 @@ class Live2dAudioPlayer extends PIXI.utils.EventEmitter {
         this._audioContext = new (AudioContext || webkitAudioContext)()
         this._analyser = this._audioContext.createAnalyser();
         this._analyser.fftSize = 128;
-
+        
         const source = this._audioContext.createMediaElementSource(this._audio)
         const audioSourceContext = source.context
         
@@ -40,6 +41,7 @@ class Live2dAudioPlayer extends PIXI.utils.EventEmitter {
 
         return new Promise((resolve, reject) => {
             this._audio.src = src
+            this._audio.muted = false
             
             if(this._audioContext != undefined){
                 if(this._audioContext.state === 'suspended') {
@@ -47,42 +49,70 @@ class Live2dAudioPlayer extends PIXI.utils.EventEmitter {
                 }
             }
             
-            this._audio.play()
             this._playAudio()
-            this._audio.addEventListener('ended', resolve)
-            this._audio.addEventListener('error', reject) 
-        })
-    }
-
-    async playAudio(src) {
-        if(!src) {
-            return
-        }
-        // this._audio.src = src
-        // if(!this._audio.preload){
-        //     this._audio.load()
-        // }
-        // this._audio.play()
-        // this._playAudio()
-
-        return new Promise((resolve, reject) => {
-            this._audio.src = src
-            
-            if(this._audioContext != undefined){
-                if(this._audioContext.state === 'suspended') {
-                    this._audioContext.resume()
-                }
-            }
-
             this._audio.play()
-            this._playAudio()
-            this._audio.addEventListener('ended', ()=>{
+
+            // this._audio.addEventListener('ended', ()=>{
+            //     if(this._audioContext.state === 'running') {
+            //         this._audioContext.suspend()
+            //     }
+            //     resolve()
+            // } ,{once : true})
+            // this._audio.addEventListener('error', reject ,{once : true}) 
+
+            this._audio.onended = () =>{
                 if(this._audioContext.state === 'running') {
                     this._audioContext.suspend()
                 }
                 resolve()
-            })
-            this._audio.addEventListener('error', reject) 
+            }
+
+            this._audio.onerror = () => {
+                reject()
+            }
+        })
+    }
+
+    async loadAudio(src) {
+        if(!src) {
+            return
+        }
+
+        return new Promise((resolve, reject) => {
+            
+            this._audio.src = src
+            this._audio.muted = false
+            this._audio.load()
+
+            this._audio.oncanplaythrough = () => {
+                resolve()
+            }
+
+            this._audio.onerror = () => {
+                reject()
+            }
+        })
+    }
+
+    async playAudio() {
+    
+        return new Promise((resolve, reject) => {
+            // this._audio.src = src
+            // this._audio.muted = false
+            
+            this._playAudio()
+            this._audio.play()
+            
+            this._audio.onended = () =>{
+                if(this._audioContext.state === 'running') {
+                    this._audioContext.suspend()
+                }
+                resolve()
+            }
+
+            this._audio.onerror = () => {
+                reject()
+            }
         })
 
     }
@@ -90,12 +120,16 @@ class Live2dAudioPlayer extends PIXI.utils.EventEmitter {
     _playAudio() {
         if(this._audioContext === undefined) {
             this.setupAnalyzer()
-            this._audio.crossOrigin = "anonymous";
-            // this._audio.addEventListener('ended', ()=>{
-            //     if(this._audioContext.state === 'running') {
-            //         this._audioContext.suspend()
-            //     }
-            // })
+        }
+
+        // if(this._audioContext.state === 'suspended') {
+        //     this._audioContext.resume()
+        // }
+
+        else if(this._audioContext != undefined){
+            if(this._audioContext.state === 'suspended') {
+                this._audioContext.resume()
+            }
         }
     }
 

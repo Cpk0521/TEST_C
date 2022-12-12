@@ -10,15 +10,18 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             ScenarioReader.instance = this
         }
 
+        //loading screen
+
         //Adv Managers and Contrller
         this._gameapp = gameapp
         this._L2dManager = new Live2dManager()
         this._BGManager = new backgroundManager()
         this._MessageManager = new MessageManager()
         this._StillManager = new StillManager()
+        this._MovieManager = new MoiveManager()
         this._SoundManager = new SoundManager()
-        this._L2dAudioPlayer = new Live2dAudioPlayer()
         this._TranslateReader = new TranslateReader()
+        this._MiscManager = new MiscManager()
 
         //add to main Container 
         this._gameapp.mainContainer.addChild(
@@ -27,6 +30,8 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             this._BGManager.frontcontainer,
             this._StillManager.container,
             this._MessageManager.container,
+            this._MovieManager.container,
+            this._MiscManager.container
         )
         
         //scenario Detail
@@ -39,14 +44,14 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
 
         //Command Counter
         this._current = -1
-        this._currIndex = -1
+        this._commIndex = -1
         this._autoplay = true
 
         //Loading Screen
         this._isLoading = true
 
         //Translate
-        this._isTranslate = false
+        this._isTranslate = true
         this._TranLang = 'zh'
 
         this.emit('ReaderOnCreated')
@@ -61,33 +66,34 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
     }
 
     async _loadMasterList(masterlist) {
-        let {StoryType, storyID, phase, heroineId, title, mainCommands, Assets} = await this._loader.load(masterlist)
 
-        console.log(StoryType, storyID, phase, heroineId, title)
+        let {storyType, storyID, phase, heroineId, title, mainCommands, Assets} = await this._loader.load(masterlist)
 
-        this._StoryType = StoryType
+        this._StoryType = storyType
         this._StoryId = storyID
         this._StoryPhase = phase
         this._StoryHeroine = heroineId
         this._Storytitle = title
-        this._CommandSet = mainCommands
+        this._CommandSet = mainCommands        
 
-        // console.log(this._checkHeroSort())
+        console.log(this._checkHeroSort())
 
         return Promise.all([
-            this._L2dManager.initialize(Assets.heroines, this._L2dAudioPlayer, this._checkHeroSort()),
+            this._L2dManager.initialize(Assets.heroines, this._checkHeroSort()),
             this._BGManager.initialize(Assets.backgrounds),
             this._MessageManager.initialize(Assets.heroines),
+            this._MovieManager.initialize(Assets.movieNames),
             new Promise((res)=>{
-                this._isTranslate ? res(this._TranslateReader.initialize(StoryType, storyID, phase, heroineId)) : res()
+                this._isTranslate ? res(this._TranslateReader.initialize(storyType, storyID, phase, heroineId)) : res()
             })
-        ]).then(()=>{
+        ]).then(async ()=>{
             this.emit('AssestsOnSetUp')
-            this.waitingTouch()
+            this._waitingTouch()
         })
     }
 
-    async waitingTouch(){
+    async _waitingTouch(){
+        this._isLoading = false
 
         let touchToStartimg = await this._loader.load('./Images/ui/Common_TouchScreenText.png')
         let touchToStart = new PIXI.Sprite(touchToStartimg);
@@ -105,47 +111,76 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
 
         GameApp.App.view.addEventListener('click', callback);
         GameApp.App.view.addEventListener('touchstart', callback);
-    }
+    }   
+
 
     async start(){
-        this._isLoading = false
         console.log('start')
 
         if(!this._CommandSet){
             return
         }
+        
+        // this.next()
 
         for (let index = 0; index < this._CommandSet.length; index++) {
-            const _curr = this._CommandSet[index];
+            let _curr = this._CommandSet[index];
             this._current = index
-            console.log(index)
-            await this.render(_curr)
+            this._commIndex = _curr.index
+            // console.log(index, _curr.index)
+            await this._render(_curr)            
         }
 
-        this.destroy()
+        if((this._current + 1) >= this._CommandSet?.length) {
+            this._finish()
+        }
+
     }
 
     async next(){
 
-        if((this._current + 1) < this._CommandSet?.length) {
-            this._current += 1
-            await this.render(this._CommandSet[this._current])
-        }else{
-            this.destory()
+        this._gameapp.mainContainer.removeAllListeners()
+        this._gameapp.mainContainer.cursor = ''
+
+        if((this._current + 1) >= this._CommandSet?.length) {
+            this._finish()
         }
 
+        for (let index = this._current + 1; index < this._CommandSet.length; index++) {
+            let _curr = this._CommandSet[index];
+            this._current = index
+            this._commIndex = _curr.index
+            await this._render(_curr)
+
+            if(_curr.commandType == 4 || _curr.commandType == 5 || _curr.commandType == 7 || _curr.commandType == 10) {
+                break
+            }
+        }
+
+        this._gameapp.mainContainer.on('click', ()=>this.next())
+        this._gameapp.mainContainer.on('touchstart', () => this.next());
+        this._gameapp.mainContainer.cursor = 'pointer'
     }
 
-    async jumpTo(index){
-        //4 , 5, 7, 10
+    _jumpTo(index){
+        let i = index > this._commIndex ? this._current + 1 : 0
+        for (i; i < this._CommandSet.length; i++) {
+            if(this._CommandSet[i].index == index) {
+                break;
+            }
+        }
+        return {command : this._CommandSet[i], index : i}
+    }
 
+    _finish() {
+        console.log('故事完結')
     }
 
     async destroy(){
         console.log('destory')
     }
 
-    async render(command) {
+    async _render(command) {
         return await new Promise((resolve) => {
             setTimeout(async()=>{
                 let {priority, executes, waiting} = this._loadCommand(command)
@@ -190,19 +225,16 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
         else if(commandType == 4){
             // console.log(index, '說話')
             let {message, rates} = content
-            _executes.push(() => this._L2dManager.speaking(id, values[0], rates, {
-                storyType : this._StoryType,
-                storyId : this._StoryId,
-                storyPhase : this._StoryPhase,
-                heroine : this._StoryHeroine
-            }))
+
+            _priority.push(() => this._L2dManager.loadAudio(ResourcePath.getAudioSrc(values[0], this._StoryType, this._StoryId, this._StoryPhase, this._StoryHeroine)))
+            _executes.push(() => this._L2dManager.speaking(id, rates))
 
             let tran_message = this._isTranslate ? this._TranslateReader.next(this._TranLang): undefined
 
             if(tran_message != undefined) {
-                _executes.push(() => this._MessageManager.show(id, tran_message.message, tran_message.name))
+                _executes.push(() => this._MessageManager.singleShow(id, tran_message.message, tran_message.name))
             }else{
-                _executes.push(() => this._MessageManager.show(id, message))
+                _executes.push(() => this._MessageManager.singleShow(id, message))
             }
 
             _waiting = 1000
@@ -214,9 +246,9 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             let tran_message = this._isTranslate ? this._TranslateReader.next(this._TranLang): undefined
             
             if(tran_message != undefined) {
-                _executes.push(() => this._MessageManager.show(id, tran_message.message, tran_message.name))
+                _executes.push(() => this._MessageManager.singleShow(id, tran_message.message, tran_message.name))
             }else{
-                _executes.push(() => this._MessageManager.show(id, message, 'マネージャー'))
+                _executes.push(() => this._MessageManager.singleShow(id, message, 'マネージャー'))
             }
 
             _waiting = 2000
@@ -227,9 +259,9 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             let tran_message = this._isTranslate ? this._TranslateReader.next(this._TranLang): undefined
 
             if(tran_message != undefined) {
-                _executes.push(() => this._MessageManager.show(100, tran_message.message, tran_message.name))
+                _executes.push(() => this._MessageManager.singleShow(100, tran_message.message, tran_message.name))
             }else{
-                _executes.push(() => this._MessageManager.show(100, message, name))
+                _executes.push(() => this._MessageManager.singleShow(100, message, name))
             }
 
             _waiting = 2000
@@ -248,6 +280,17 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
         }
         else if(commandType == 10){
             // console.log(index, '多人說話')
+            let {multiHeroineParams, message} = content
+            let tran_message = this._isTranslate ? this._TranslateReader.next(this._TranLang): undefined
+
+            if(tran_message != undefined) {
+                _executes.push(() => this._MessageManager.multiShow(multiHeroineParams, tran_message.message))
+            }else{
+                _executes.push(() => this._MessageManager.multiShow(multiHeroineParams, message))
+            }
+
+            _waiting = 2000
+
         }
 
         else if(commandType == 11){
@@ -350,7 +393,7 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             // console.log(index, '???')
         }
         else if(commandType == 22){
-            // console.log(index, '???')
+            // console.log(index, '背景Fx濾鏡')
             console.log(id, '<----------------------------???')
             _executes.push(() => this.delay(time * 1000))
         }
@@ -358,7 +401,7 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             // console.log(index, '播放音效')
             _executes.push(async() => {
                 await this.delay(time * 1000)
-                await this._SoundManager.play('SE', `./Audio/SE/scenario_${id.toString().padStart(3, '0')}.mp3`)
+                await this._SoundManager.play('SE', ResourcePath.getSEAudioSrc(id))
                 return Promise.resolve()
             })
 
@@ -381,7 +424,7 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             // console.log('!!!!!')
             let {isActive} = content
             if(isActive == 1) {
-                _executes.push(() => this._StillManager.show(this._StoryId, id))
+                _executes.push(() => this._StillManager.show(ResourcePath.getImageSrc(this._StoryId, id)))
             }
             if(isActive == 0) {
                 _executes.push(() => this._StillManager.hide())
@@ -394,15 +437,17 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
         else if(commandType == 29){
             // console.log(index, '???')
         }
-
         else if(commandType == 30){
             // console.log(index, '播卡片動畫')
         }
         else if(commandType == 31){
-            // console.log(index, '???')
+            // console.log(index, '中間出字')
+            let {message} = content
+            this._MiscManager.showText(message)
         }
         else if(commandType == 32){
             // console.log(index, '???')
+
         }
 
         else if(commandType == 101){
@@ -440,7 +485,6 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
     delay(time) {
         return new Promise((resolve) => setTimeout(resolve, time));
     }
-
 
     _checkHeroSort(){
         let list = []
@@ -481,4 +525,63 @@ class ScenarioReader extends PIXI.utils.EventEmitter {
             heroine : this._StoryHeroine
         }
     }
+}
+
+
+class ResourcePath{
+
+    static l2dsrc = 'https://cpk0521.github.io/CUE-live2d-Viewer'
+    static resource_path = 'https://raw.githubusercontent.com/Cpk0521/CueStoryResource/main/voice/'
+    static image_src = 'https://raw.githubusercontent.com/Cpk0521/CUECardsViewer/master/public/Cards/'
+        
+    static getL2dSrc(heroineId, costumeId){
+        return `./Assets/Live2d/${heroineId.toString().padStart(3, '0')}/${heroineId.toString().padStart(3, '0')}_${costumeId.toString().padStart(3, '0')}/${heroineId.toString().padStart(3, '0')}.model3.json`
+    }
+
+    static getL2dSrc2(heroineId, costumeId){
+        return `${this.l2dsrc}/live2d/${heroineId.toString().padStart(3, '0')}/${heroineId.toString().padStart(3, '0')}_${costumeId.toString().padStart(3, '0')}/${heroineId.toString().padStart(3, '0')}.model3.json`
+    }
+
+    static getAudioSrc(index, storyType, storyId, storyPhase, storyheroine) {
+        let src = ''
+
+        switch (storyType) {
+            case "Main":
+                src = `${this.resource_path}/main_01/Main_01_${storyId.toString().padStart(2, '0')}/Main_01_${storyId.toString().padStart(2, '0')}_${storyPhase.toString().padStart(2, '0')}/main_01_${storyId.toString().padStart(2, '0')}_${storyPhase.toString().padStart(2, '0')}_${index.toString().padStart(3, '0')}.mp3`
+                break;
+            case "Event":
+                break;
+            case "Card":
+                src = `${this.resource_path}/${storyType.toLowerCase()}/${storyType}_${storyheroine.toString().padStart(2, '0')}/${storyType}_${storyId}_${storyPhase}/${storyType.toLowerCase()}_${storyId}_${storyPhase}_${index.toString().padStart(3, '0')}.mp3`
+                break;
+            case "Link":
+                break;
+            case "Lesson":
+                break;
+        }
+
+        return src
+    }
+
+    static getBGMAudioSrc(index) {
+        return `./Audio/BGM/${index.toString().padStart(3, '0')}.mp3`
+    }
+
+    static getSEAudioSrc(index) {
+        return `./Audio/SE/scenario_${index.toString().padStart(3, '0')}.mp3`
+    }
+
+    static getImageSrc(storyId, imageType) {
+        return `${this.image_src}/${storyId}/Card_${storyId}_${imageType}_b.png`
+    }
+
+    static getMovieSrc(){
+        return
+    }
+
+    static getScenarioSrc(storyType, storyId, storyPhase, storyheroine){
+        return ''
+    }
+    
+
 }

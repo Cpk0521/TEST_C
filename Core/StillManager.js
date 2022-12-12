@@ -8,12 +8,7 @@ class StillManager {
 
     }
 
-    async loadData(){
-
-    }
-
-    async show(storyId, imageType) {
-        let src = `${image_src}/${storyId}/Card_${storyId}_${imageType}_b.png`
+    async show(src) {
         await this._loader.load(src).then((img)=>{
             this._stillImage = PIXI.Sprite.from(img)
 

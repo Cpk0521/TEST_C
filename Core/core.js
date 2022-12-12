@@ -6,18 +6,19 @@ var phase = params.get('phase')
 
 window.onload = () => {
 
-    const vConsole = new window.VConsole();
     const element = document.getElementById('app')
 
     const app = GameApp.create(element, {
-        width : 1480,
-        height : 720,
+        width : 1480, //1480
+        height : 720, //720
     })
     
     ScenarioReader.create(app)
-    ScenarioReader.loadMasterList('./Test/Card_1010001_1.json')
+    // ScenarioReader.loadMasterList('./Test/Card_1010001_1.json')
     // ScenarioReader.loadMasterList('./Test/Card_3010004_2.json')
-    // ScenarioReader.loadMasterList('./Test/Card_1130001_1.json')
+    ScenarioReader.loadMasterList('./Test/Card_1130001_1.json')
     // ScenarioReader.loadMasterList('./Test/Card_4010012_3.json')
-    
+    // ScenarioReader.loadMasterList('./Test/Main_01_08_15.json')
+
+
 }

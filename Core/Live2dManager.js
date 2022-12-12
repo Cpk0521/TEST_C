@@ -1,4 +1,3 @@
-const l2dsrc = 'https://cpk0521.github.io/CUE-live2d-Viewer'
 const resource_path = 'https://raw.githubusercontent.com/Cpk0521/CueStoryResource/main/voice/'
 
 class Live2dManager extends PIXI.utils.EventEmitter {
@@ -7,7 +6,7 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         super()
 
         this._container = new PIXI.Container();
-        // this._L2dAudioPlayer = SoundManager.L2dAudioPlayer
+        this._L2dAudioPlayer = SoundManager.L2dAudioPlayer
         this._holderMap = new Map()
 
         //
@@ -17,12 +16,10 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         this._builtModelCount = 0
     }
 
-    async initialize(Assets, L2dAudio, sortedlist) {
+    async initialize(Assets, sortedlist) {
         if(!Assets) {
             return new Promise(()=>{})
         }
-
-        this._L2dAudioPlayer = L2dAudio
 
         for (let index = 0; index < Assets.length; index++) {
             await this._createHolder(Assets[index])
@@ -53,7 +50,7 @@ class Live2dManager extends PIXI.utils.EventEmitter {
             return new Promise(()=>{})
         }
 
-        let modelsrc = `${l2dsrc}/live2d/${hero.heroineId.toString().padStart(3, '0')}/${hero.heroineId.toString().padStart(3, '0')}_${hero.costumeId.toString().padStart(3, '0')}/${hero.heroineId.toString().padStart(3, '0')}.model3.json`
+        let modelsrc = ResourcePath.getL2dSrc2(hero.heroineId, hero.costumeId)
         return Live2dHolder.create(modelsrc).then((holder)=>{
             this._holderMap.set(hero.dataId, holder)
             return holder
@@ -88,7 +85,7 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         let holder = this._getBuiltHolder(id)
 
         if(holder) {
-            holder.setVisible(true)
+            holder.activate()
         }
 
         if(expression != undefined) {
@@ -138,31 +135,20 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         return Promise.resolve(holder)
     }
 
-    async speaking(id, content, rates, {storyType, storyId, storyPhase, heroine}){
+    async speaking(id, rates){
         let holder = this._getBuiltHolder(id)
+        return holder.speak()
+    }
 
-        let src = ''
-        switch (storyType) {
-            case "Main":
-                break;
-            case "Event":
-                break;
-            case "Card":
-                src = `${resource_path}/${storyType.toLowerCase()}/${storyType}_${heroine.toString().padStart(2, '0')}/${storyType}_${storyId}_${storyPhase}/${storyType.toLowerCase()}_${storyId}_${storyPhase}_${content.toString().padStart(3, '0')}.mp3`
-                break;
-            case "Link":
-                break;
-            case "Lesson":
-                break;
-        }
-
-        return holder.speak(src)
+    async loadAudio(src) {
+        return this._L2dAudioPlayer.loadAudio(src)
     }
 
     async hide(id) {
         let holder = this._getBuiltHolder(id)
         holder.setPosition(-740, GameApp.appSize.height * 0.895)
-        holder.setVisible(false)
+        // holder.setVisible(false)
+        holder.rest()
 
         if(this._savingMode) {
             if(!this._isExistInList(id) && this._heroShowList.length > 0){
@@ -181,7 +167,8 @@ class Live2dManager extends PIXI.utils.EventEmitter {
         this._holderMap.forEach(async(v, k, m) => {
             if(v.IsBuild) {
                 v.setPosition(-740, GameApp.appSize.height * 0.895)
-                v.setVisible(false)
+                // v.setVisible(false)
+                v.rest()
 
                 if(this._savingMode) {
                     if(!this._isExistInList(k) && this._heroShowList.length > 0){
@@ -250,29 +237,6 @@ class Live2dManager extends PIXI.utils.EventEmitter {
 
         // console.log(this._heroShowList)
     }
-
-    _getResourcePath(storyType, storyId, storyPhase, heroine){
-        let resource = 'https://raw.githubusercontent.com/Cpk0521/CueStoryResource/main/voice/'
-        let src = ''
-
-        switch (storyType) {
-            case "Main":
-                break;
-            case "Event":
-                break;
-            case "Card":
-                src = `${resource_path}/${storyType.toLowerCase()}/${storyType}_${heroine.toString().padStart(2, '0')}/${storyType}_${storyId}_${storyPhase}/${storyType.toLowerCase()}_${storyId}_${storyPhase}_`
-                break;
-            case "Link":
-                break;
-            case "Lesson":
-                break;
-        }
-        
-        return src
-    }
-
-
 
     _getHolder(label) {
         let holder = this._holderMap.get(label)

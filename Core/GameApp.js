@@ -29,6 +29,7 @@ class GameApp extends PIXI.utils.EventEmitter {
 
         //create main Container and add To Application
         this._mainContainer = new PIXI.Container()
+        this._mainContainer.interactive = true 
         this._app.stage.addChild(this._mainContainer)
 
         //ticker

@@ -31,7 +31,7 @@ class Live2dHolder extends PIXI.utils.EventEmitter {
             return Promise.reject(this)
         }
         
-        this._Model = await PIXI.live2d.Live2DModel.from(this._modelsetting);
+        this._Model = await PIXI.live2d.Live2DModel.from(this._modelsetting, {autoUpdate : false});
 
         this._Model.autoInteract = false; //pixi v7 need to set false
         this._Model.buttonMode = false;
@@ -89,6 +89,18 @@ class Live2dHolder extends PIXI.utils.EventEmitter {
         parent.addChild(this._Model)
     }
 
+    activate(){
+        if(!this._Model.autoUpdate) {
+            this._Model.autoUpdate = true
+        }
+        this.setVisible(true)
+    }
+
+    rest() {
+        this._Model.autoUpdate = false
+        this.setVisible(false)
+    }
+
     destory(){
         if(!this.isBuild) {
             return
@@ -138,12 +150,23 @@ class Live2dHolder extends PIXI.utils.EventEmitter {
     }
 
     //Speaking
-    async speak(audio_src){
+    // async speak(audio_src){
+    //     this.setlipSync(true)
+    //     return this._audioManager?.playAudio(audio_src).then(()=>{
+    //         this.setlipSync(false)
+    //     })
+    // }
+
+    async speak(){
         this.setlipSync(true)
-        return this._audioManager?.playAudio(audio_src).then(()=>{
+        return this._audioManager?.playAudio().then(()=>{
             this.setlipSync(false)
         })
     }
+
+    // async loadAudio(audio_src){
+    //     return this._audioManager?.loadAudio(audio_src)
+    // }
 
     //Model Controll
     setlipSync(bool) {

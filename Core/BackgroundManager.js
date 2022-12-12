@@ -31,6 +31,10 @@ class backgroundManager extends PIXI.utils.EventEmitter {
         return this._switchBG(id, subid)
     }
 
+    update(dt){
+
+    }
+
     async _addBG(id, subid, BG, json = {}){
 
         if(this._isExist(id, subid)){

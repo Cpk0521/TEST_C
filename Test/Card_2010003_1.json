@@ -1,5 +1,5 @@
 {
-  "StoryType": "Card",
+  "storyType": "Card",
   "storyID" : 2010003,
   "phase" : 1,
   "heroineId" : 1,

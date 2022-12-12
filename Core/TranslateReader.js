@@ -30,7 +30,6 @@ class TranslateReader extends PIXI.utils.EventEmitter {
                 break;
         }
 
-
         return await this._loader.load(src).then(({Dialogue, Language, Translator})=>{
             this._messageLog = Dialogue
             this._language = Language

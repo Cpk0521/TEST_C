@@ -1,7 +1,7 @@
 //https://www.w3schools.com/jsref/dom_obj_audio.asp
 class SoundManager extends PIXI.utils.EventEmitter {
 
-    // static _L2dAudioPlayer = new Live2dAudioPlayer()
+    static _L2dAudioPlayer = new Live2dAudioPlayer()
     static instance = null
     constructor(){
         super()
@@ -75,9 +75,9 @@ class SoundManager extends PIXI.utils.EventEmitter {
         this._SEaudio.pause()
     }
 
-    // static get L2dAudioPlayer() {
-    //     return this._L2dAudioPlayer
-    // }
+    static get L2dAudioPlayer() {
+        return this._L2dAudioPlayer
+    }
 
 
 }
